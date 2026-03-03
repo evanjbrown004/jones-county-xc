@@ -76,6 +76,9 @@ function App() {
         <p className="text-[#F0C040] text-xl font-semibold">
           Building champions on and off the track
         </p>
+        <p className="text-white text-sm mt-3 opacity-75">
+          2022 · 2023 · 2024 · 2025 Region Champions
+        </p>
       </section>
 
     </div>
