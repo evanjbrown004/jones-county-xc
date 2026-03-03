@@ -1,0 +1,61 @@
+name: Deploy to Lightsail
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: backend/go.sum
+
+      - name: Build backend (linux/amd64)
+        working-directory: backend
+        run: GOOS=linux GOARCH=amd64 go build -o jones-county-xc-backend .
+
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail.pem
+          chmod 600 ~/.ssh/lightsail.pem
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy frontend (static files)
+        run: |
+          scp -i ~/.ssh/lightsail.pem -r frontend/dist/* \
+            ubuntu@${{ secrets.LIGHTSAIL_HOST }}:/var/www/jones-county-xc/
+
+      - name: Deploy backend binary
+        run: |
+          scp -i ~/.ssh/lightsail.pem backend/jones-county-xc-backend \
+            ubuntu@${{ secrets.LIGHTSAIL_HOST }}:/home/ubuntu/jones-county-xc-backend
+
+      - name: Install and restart backend service
+        run: |
+          ssh -i ~/.ssh/lightsail.pem ubuntu@${{ secrets.LIGHTSAIL_HOST }} \
+            "sudo mv /home/ubuntu/jones-county-xc-backend /usr/local/bin/jones-county-xc-backend && \
+             sudo chmod +x /usr/local/bin/jones-county-xc-backend && \
+             sudo systemctl restart jones-county-xc"

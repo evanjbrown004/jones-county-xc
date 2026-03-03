@@ -1,0 +1,17 @@
+# Backend binary
+backend/backend
+backend/jones-county-xc-backend
+
+# Frontend build output
+frontend/dist/
+
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Environment files
+.env
+.env.*
+
+# OS
+.DS_Store
