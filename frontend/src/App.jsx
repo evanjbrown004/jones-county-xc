@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import './App.css'
 
 const PURPLE = '#3B1A69'
@@ -42,6 +44,106 @@ const highlights = [
     desc: 'Nutrition, recovery, and injury prevention resources for every runner.',
   },
 ]
+
+function AthletesSection() {
+  const { data: athletes = [], isLoading, isError } = useQuery({
+    queryKey: ['athletes'],
+    queryFn: () => fetch('/api/athletes').then(r => r.json()),
+  })
+
+  return (
+    <section className="max-w-6xl mx-auto px-4 py-20">
+      <h2 className="text-center text-3xl font-black mb-2" style={{ color: PURPLE, fontFamily: 'Georgia, serif' }}>
+        Athletes
+      </h2>
+      <p className="text-center text-gray-500 mb-12 text-sm tracking-wide">Meet the Greyhounds</p>
+
+      {isLoading ? (
+        <p className="text-center text-gray-400">Loading...</p>
+      ) : isError ? (
+        <p className="text-center text-red-500">Failed to load athletes. Is the backend running?</p>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: PURPLE }}>
+                <th className="text-left px-6 py-4 font-black tracking-widest text-xs uppercase" style={{ color: GOLD }}>Name</th>
+                <th className="text-left px-6 py-4 font-black tracking-widest text-xs uppercase" style={{ color: GOLD }}>Grade</th>
+                <th className="text-left px-6 py-4 font-black tracking-widest text-xs uppercase" style={{ color: GOLD }}>PR</th>
+              </tr>
+            </thead>
+            <tbody>
+              {athletes.map((a, i) => (
+                <tr
+                  key={a.name}
+                  className="border-t border-gray-100 transition-colors"
+                  style={{ background: i % 2 === 0 ? '#fff' : '#faf9ff' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f3eeff'}
+                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#faf9ff'}
+                >
+                  <td className="px-6 py-4 font-semibold" style={{ color: PURPLE }}>{a.name}</td>
+                  <td className="px-6 py-4 text-gray-600">{a.grade}</td>
+                  <td className="px-6 py-4 font-black" style={{ color: PURPLE }}>{a.prTime}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function MeetsSection() {
+  const [meets, setMeets] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/meets')
+      .then(r => r.json())
+      .then(data => { setMeets(data); setLoading(false) })
+  }, [])
+
+  return (
+    <section className="max-w-6xl mx-auto px-4 py-20">
+      <h2 className="text-center text-3xl font-black mb-2" style={{ color: PURPLE, fontFamily: 'Georgia, serif' }}>
+        Upcoming Meets
+      </h2>
+      <p className="text-center text-gray-500 mb-12 text-sm tracking-wide">Race schedule for the season</p>
+
+      {loading ? (
+        <p className="text-center text-gray-400">Loading...</p>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: PURPLE }}>
+                <th className="text-left px-6 py-4 font-black tracking-widest text-xs uppercase" style={{ color: GOLD }}>Meet</th>
+                <th className="text-left px-6 py-4 font-black tracking-widest text-xs uppercase" style={{ color: GOLD }}>Date</th>
+                <th className="text-left px-6 py-4 font-black tracking-widest text-xs uppercase" style={{ color: GOLD }}>Location</th>
+              </tr>
+            </thead>
+            <tbody>
+              {meets.map((m, i) => (
+                <tr
+                  key={m.id}
+                  className="border-t border-gray-100 transition-colors"
+                  style={{ background: i % 2 === 0 ? '#fff' : '#faf9ff' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f3eeff'}
+                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#faf9ff'}
+                >
+                  <td className="px-6 py-4 font-semibold" style={{ color: PURPLE }}>{m.name}</td>
+                  <td className="px-6 py-4 text-gray-600">{m.date}</td>
+                  <td className="px-6 py-4 text-gray-600">{m.location}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )
+}
 
 function Logo() {
   return (
@@ -176,6 +278,12 @@ export default function App() {
           ))}
         </div>
       </section>
+
+      {/* Athletes */}
+      <AthletesSection />
+
+      {/* Meets */}
+      <MeetsSection />
 
       {/* CTA banner */}
       <section className="py-16 px-6 text-center" style={{ background: `linear-gradient(135deg, ${PURPLE}, #5C2D8F)` }}>
