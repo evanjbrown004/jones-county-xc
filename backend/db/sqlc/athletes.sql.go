@@ -7,7 +7,38 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
+
+const createAthlete = `-- name: CreateAthlete :execresult
+INSERT INTO athletes (name, grade, pr_time, events)
+VALUES (?, ?, ?, ?)
+`
+
+type CreateAthleteParams struct {
+	Name   string
+	Grade  int8
+	PrTime sql.NullString
+	Events sql.NullString
+}
+
+func (q *Queries) CreateAthlete(ctx context.Context, arg CreateAthleteParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createAthlete,
+		arg.Name,
+		arg.Grade,
+		arg.PrTime,
+		arg.Events,
+	)
+}
+
+const deleteAthlete = `-- name: DeleteAthlete :exec
+DELETE FROM athletes WHERE id = ?
+`
+
+func (q *Queries) DeleteAthlete(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteAthlete, id)
+	return err
+}
 
 const getAllAthletes = `-- name: GetAllAthletes :many
 SELECT id, name, grade, pr_time, events FROM athletes

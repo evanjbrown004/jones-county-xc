@@ -7,7 +7,33 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"time"
 )
+
+const createMeet = `-- name: CreateMeet :execresult
+INSERT INTO meets (name, date, location)
+VALUES (?, ?, ?)
+`
+
+type CreateMeetParams struct {
+	Name     string
+	Date     time.Time
+	Location sql.NullString
+}
+
+func (q *Queries) CreateMeet(ctx context.Context, arg CreateMeetParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createMeet, arg.Name, arg.Date, arg.Location)
+}
+
+const deleteMeet = `-- name: DeleteMeet :exec
+DELETE FROM meets WHERE id = ?
+`
+
+func (q *Queries) DeleteMeet(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteMeet, id)
+	return err
+}
 
 const getAllMeets = `-- name: GetAllMeets :many
 SELECT id, name, date, location FROM meets

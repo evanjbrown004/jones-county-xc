@@ -1,12 +1,17 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"jones-county-xc/backend/db/sqlc"
@@ -70,6 +75,27 @@ type topTimeResponse struct {
 	Place       int32  `json:"place"`
 	AthleteName string `json:"athleteName"`
 	MeetName    string `json:"meetName"`
+}
+
+// makeToken returns an HMAC-SHA256 hex token for the given password.
+func makeToken(password, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(password))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// requireAdmin checks the Authorization: Bearer <token> header.
+func requireAdmin(secret string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		token := strings.TrimPrefix(auth, "Bearer ")
+		password := getenv("ADMIN_PASSWORD", "Hounds2026Admin")
+		if token == "" || token != makeToken(password, secret) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+			return
+		}
+		next(w, r)
+	}
 }
 
 func main() {
@@ -201,6 +227,146 @@ func main() {
 		}
 		writeJSON(w, http.StatusCreated, map[string]string{"status": "created"})
 	})
+
+	adminSecret := getenv("ADMIN_SECRET", "jcxc-secret-key")
+
+	// POST /api/athletes/create
+	mux.HandleFunc("/api/athletes/create", requireAdmin(adminSecret, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+		var body struct {
+			Name   string `json:"name"`
+			Grade  int8   `json:"grade"`
+			PrTime string `json:"prTime"`
+			Events string `json:"events"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name is required"})
+			return
+		}
+		var prTime sql.NullString
+		if body.PrTime != "" {
+			prTime = sql.NullString{String: body.PrTime, Valid: true}
+		}
+		var events sql.NullString
+		if body.Events != "" {
+			events = sql.NullString{String: body.Events, Valid: true}
+		}
+		_, err := q.CreateAthlete(r.Context(), db.CreateAthleteParams{
+			Name:   body.Name,
+			Grade:  body.Grade,
+			PrTime: prTime,
+			Events: events,
+		})
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]string{"status": "created"})
+	}))
+
+	// DELETE /api/athletes/{id}
+	mux.HandleFunc("/api/athletes/delete/", requireAdmin(adminSecret, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+		idStr := r.URL.Path[len("/api/athletes/delete/"):]
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid id"})
+			return
+		}
+		if err := q.DeleteAthlete(r.Context(), int32(id)); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+	}))
+
+	// POST /api/meets/create
+	mux.HandleFunc("/api/meets/create", requireAdmin(adminSecret, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+		var body struct {
+			Name     string `json:"name"`
+			Date     string `json:"date"`
+			Location string `json:"location"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" || body.Date == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name and date are required"})
+			return
+		}
+		date, err := time.Parse("2006-01-02", body.Date)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "date must be YYYY-MM-DD"})
+			return
+		}
+		var location sql.NullString
+		if body.Location != "" {
+			location = sql.NullString{String: body.Location, Valid: true}
+		}
+		_, err = q.CreateMeet(r.Context(), db.CreateMeetParams{
+			Name:     body.Name,
+			Date:     date,
+			Location: location,
+		})
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]string{"status": "created"})
+	}))
+
+	// DELETE /api/meets/{id}
+	mux.HandleFunc("/api/meets/delete/", requireAdmin(adminSecret, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+		idStr := r.URL.Path[len("/api/meets/delete/"):]
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid id"})
+			return
+		}
+		if err := q.DeleteMeet(r.Context(), int32(id)); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+	}))
+
+	// POST /api/admin/login
+	mux.HandleFunc("/api/admin/login", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+		var body struct {
+			Password string `json:"password"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Password == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password required"})
+			return
+		}
+		adminPassword := getenv("ADMIN_PASSWORD", "Hounds2026Admin")
+		if body.Password != adminPassword {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid password"})
+			return
+		}
+		token := makeToken(body.Password, adminSecret)
+		writeJSON(w, http.StatusOK, map[string]string{"token": token})
+	})
+
+	// GET /api/admin/me — example protected route to verify token
+	mux.HandleFunc("/api/admin/me", requireAdmin(adminSecret, func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"role": "admin"})
+	}))
 
 	log.Println("Backend running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
