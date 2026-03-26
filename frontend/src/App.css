@@ -4,3 +4,28 @@
   padding: 0;
   text-align: left;
 }
+
+@keyframes runnerBounce {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes legFwd {
+  0% { transform: rotate(-35deg); }
+  100% { transform: rotate(35deg); }
+}
+
+@keyframes legBack {
+  0% { transform: rotate(35deg); }
+  100% { transform: rotate(-35deg); }
+}
+
+@keyframes armFwd {
+  0% { transform: rotate(35deg); }
+  100% { transform: rotate(-35deg); }
+}
+
+@keyframes armBack {
+  0% { transform: rotate(-35deg); }
+  100% { transform: rotate(35deg); }
+}
