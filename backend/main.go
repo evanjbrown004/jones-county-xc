@@ -348,15 +348,17 @@ func main() {
 			return
 		}
 		var body struct {
+			Username string `json:"username"`
 			Password string `json:"password"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Password == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password required"})
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Password == "" || body.Username == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "username and password required"})
 			return
 		}
+		adminUsername := getenv("ADMIN_USERNAME", "username")
 		adminPassword := getenv("ADMIN_PASSWORD", "Hounds2026Admin")
-		if body.Password != adminPassword {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid password"})
+		if body.Username != adminUsername || body.Password != adminPassword {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid username or password"})
 			return
 		}
 		token := makeToken(body.Password, adminSecret)

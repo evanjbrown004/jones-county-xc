@@ -5,6 +5,7 @@ const GREEN = '#16a34a'
 const GOLD = '#F0C040'
 
 export default function LoginPage() {
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -19,7 +20,7 @@ export default function LoginPage() {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username, password }),
       })
       const data = await res.json()
 
@@ -68,6 +69,32 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
+          <div className="mb-4">
+            <label htmlFor="username" className="block text-sm font-bold mb-2" style={{ color: GREEN }}>
+              Username
+            </label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              placeholder="Enter username"
+              required
+              autoComplete="username"
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                border: error ? '2px solid #ef4444' : '2px solid #e5e7eb',
+                borderRadius: '10px',
+                fontSize: '0.95rem',
+                outline: 'none',
+                transition: 'border-color 0.15s',
+                boxSizing: 'border-box',
+              }}
+              onFocus={e => { if (!error) e.target.style.borderColor = GREEN }}
+              onBlur={e => { if (!error) e.target.style.borderColor = '#e5e7eb' }}
+            />
+          </div>
           <div className="mb-5">
             <label
               htmlFor="password"
