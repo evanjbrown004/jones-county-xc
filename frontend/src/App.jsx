@@ -8,14 +8,20 @@ const PURPLE = '#16a34a'
 const GOLD = '#F0C040'
 
 const navItems = [
-  { label: 'Home' },
-  { label: 'High School', dropdown: true },
-  { label: 'Middle School', dropdown: true },
-  { label: 'Runners' },
-  { label: 'Top Hounds', dropdown: true },
-  { label: 'Schedule' },
-  { label: 'Practice' },
+  { label: 'Home', section: 'top' },
+  { label: 'High School', section: 'athletes' },
+  { label: 'Runners', section: 'athletes' },
+  { label: 'Top Hounds', section: 'highlights' },
+  { label: 'Schedule', section: 'schedule' },
 ]
+
+function scrollTo(section) {
+  if (section === 'top') {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } else {
+    document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' })
+  }
+}
 
 const stats = [
   { value: '4x', label: 'Region Champions' },
@@ -34,11 +40,6 @@ const highlights = [
     icon: '🏃',
     title: 'High School Team',
     desc: 'Varsity and JV runners competing at the highest level in the region.',
-  },
-  {
-    icon: '🍎',
-    title: 'Middle School Team',
-    desc: 'Building the next generation of Greyhound champions.',
   },
   {
     icon: '❤️',
@@ -294,14 +295,13 @@ export default function App() {
                 type="button"
                 className="px-3 py-1.5 text-sm font-semibold text-white rounded transition-colors cursor-pointer border-0"
                 style={{ background: 'transparent' }}
-                aria-haspopup={item.dropdown ? 'true' : undefined}
-                aria-expanded={item.dropdown ? 'false' : undefined}
+                onClick={() => scrollTo(item.section)}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,192,64,0.15)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 onFocus={e => e.currentTarget.style.background = 'rgba(240,192,64,0.15)'}
                 onBlur={e => e.currentTarget.style.background = 'transparent'}
               >
-                {item.label} {item.dropdown && <span className="opacity-60 text-xs" aria-hidden="true">▾</span>}
+                {item.label}
               </button>
             ))}
           </nav>
@@ -334,6 +334,7 @@ export default function App() {
               type="button"
               className="px-8 py-3 rounded-full font-black text-sm tracking-wide cursor-pointer border-0"
               style={{ background: '#fff', color: PURPLE, boxShadow: '0 4px 14px rgba(0,0,0,0.25)', transition: 'transform 0.15s, box-shadow 0.15s' }}
+              onClick={() => scrollTo('athletes')}
               onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.35)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.25)' }}
               onFocus={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.35)' }}
@@ -345,6 +346,7 @@ export default function App() {
               type="button"
               className="px-8 py-3 rounded-full font-black text-sm tracking-wide cursor-pointer"
               style={{ background: 'transparent', border: '2px solid #fff', color: '#fff', boxShadow: '0 4px 14px rgba(0,0,0,0.2)', transition: 'transform 0.15s, box-shadow 0.15s, background 0.15s' }}
+              onClick={() => scrollTo('schedule')}
               onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'transparent' }}
               onFocus={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
@@ -378,7 +380,7 @@ export default function App() {
       </div>
 
       {/* Highlights */}
-      <section className="max-w-2xl mx-auto px-4 py-20" aria-label="About the Program">
+      <section id="highlights" className="max-w-2xl mx-auto px-4 py-20" aria-label="About the Program">
         <h2 className="text-3xl font-black mb-2" style={{ color: PURPLE, fontFamily: 'Georgia, serif' }}>
           About the Program
         </h2>
@@ -401,10 +403,10 @@ export default function App() {
       </section>
 
       {/* Athletes */}
-      <AthletesSection />
+      <div id="athletes"><AthletesSection /></div>
 
       {/* Meets */}
-      <MeetsSection />
+      <div id="schedule"><MeetsSection /></div>
 
       {/* CTA banner */}
       <section className="py-16 px-6 text-center" style={{ background: `linear-gradient(135deg, #15803d, #16a34a)` }} aria-label="Join the team">
